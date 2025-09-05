@@ -1,7 +1,7 @@
 # 🎬 LoveSage: AI Movie Recommender
 
 > "Recommend me emotionally animated movies about food."  
-> → *"I highly recommend Ratatouille — a heartwarming story about a rat who dreams of becoming a chef..."*
+> → *"I highly recommend Ratatouille, a heartwarming story about a rat who dreams of becoming a chef..."*
 
 LoveSage is a **RAG-powered movie recommendation system** that understands natural language and delivers **smart, explained suggestions** — not just keyword matches.
 
@@ -9,7 +9,7 @@ Built with **Google ADK**, **ChromaDB**, and **Gemini**, it combines semantic se
 
 ---
 
-##Features
+## Features
 
 - **Natural language queries**  
   _"Best psychological thrillers with twist endings"_
@@ -35,7 +35,7 @@ Built with **Google ADK**, **ChromaDB**, and **Gemini**, it combines semantic se
 
 ---
 
-##Try It
+## Try It
 
 ```bash
 # Run in terminal
