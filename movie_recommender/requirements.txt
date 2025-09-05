@@ -1,0 +1,10 @@
+# requirements.txt
+google-adk
+chromadb
+sentence-transformers
+spacy
+pandas
+numpy
+google-generativeai
+torch
+tqdm
