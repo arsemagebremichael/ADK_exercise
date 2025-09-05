@@ -4,7 +4,7 @@ import chromadb
 from sentence_transformers import SentenceTransformer
 import google.generativeai as genai
 import os
-from movie_recommender.utils import clean_text  # ✅ Absolute import
+from movie_recommender.utils import clean_text 
 
 # Initialize models
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
@@ -27,7 +27,7 @@ Here are the most relevant movies based on plot, genre, director, cast, and tone
 {context}
 
 Respond in a warm, conversational way:
-- Recommend 1–3 movies.
+- Recommend 1–5 movies.
 - Explain why each matches (e.g., similar themes, mood, director, actors).
 - Mention standout elements: story, performances, emotional impact.
 - Avoid bullet points. Be natural and engaging.
@@ -43,7 +43,7 @@ def recommend_movies(query: str) -> str:
         n_results=3
     )
 
-    # Format context
+    # The format context
     context_parts = []
     for meta, doc in zip(results["metadatas"][0], results["documents"][0]):
         stars = ", ".join(meta.get("Stars", [])) if isinstance(meta.get("Stars"), list) else meta.get("Stars", "")

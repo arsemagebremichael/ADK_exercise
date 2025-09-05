@@ -1,13 +1,7 @@
-# utils.py
-"""
-Utility functions for preprocessing movie data.
-"""
-
 import pandas as pd
 import re
 import spacy
 
-# Load spaCy model
 try:
     nlp = spacy.load("en_core_web_sm")
 except OSError:

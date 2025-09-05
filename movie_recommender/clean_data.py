@@ -1,84 +1,133 @@
-# clean_data.py
 import pandas as pd
 import numpy as np
-import os
+import re
+import unicodedata
+import spacy
+
+#Loading spaCy model for lemmatization
+try:
+    nlp = spacy.load("en_core_web_sm")
+except OSError:
+    raise OSError(
+        "SpaCy model not found. Install it with:\n"
+        "python -m spacy download en_core_web_sm"
+    )
+
+def clean_text_lemmatize(text: str) -> str:
+    """Clean and lemmatize text using spaCy."""
+    if not isinstance(text, str) or text.strip() == "":
+        return ""
+
+    # Normalize Unicode and clean
+    text = unicodedata.normalize('NFKC', text)
+    text = re.sub(r'\s+', ' ', text).strip()
+    text = text.lower()
+    
+    # Parse with spaCy
+    doc = nlp(text)
+
+    # Lemmatize, remove stopwords/punctuation
+    tokens = [
+        token.lemma_ for token in doc
+        if not token.is_stop
+        and not token.is_punct
+        and token.is_alpha
+    ]
+    return " ".join(tokens)
 
 def clean_movie_data(csv_path="IMDB top 1000.csv", output_path="cleaned_imdb_top_1000.csv"):
-    """
-    Cleans the movie dataset:
-    - Drops rows with missing Title or Description
-    - For other columns, if missing < 20%, fills with appropriate values
-    - Saves cleaned data to output_path
-    """
     print(f"Loading data from {csv_path}...")
-    df = pd.read_csv(csv_path)
+    df = pd.read_csv(csv_path, on_bad_lines='skip')
 
-    original_rows = len(df)
-    print(f"Original data: {original_rows} rows")
-
-    # Replace empty strings, whitespace, and NaN with NaN
+    # Replace empty strings and whitespace with NaN
     df = df.replace(r'^\s*$', np.nan, regex=True)
 
-    # -------------------------------
-    # 1. Drop rows where Title or Description is missing
-    # -------------------------------
-    required_columns = ['Title', 'Description']
-    missing_in_required = df[required_columns].isnull().any(axis=1)
-    df_clean = df[~missing_in_required].copy()
+    original_rows, original_cols = df.shape
+    print(f"Original data: {original_rows} rows, {original_cols} columns")
 
-    dropped_rows = original_rows - len(df_clean)
+    # -------------------------------
+    # 1. Drop columns with >50% missing
+    # -------------------------------
+    missing_percent = df.isnull().mean()
+    cols_to_drop = missing_percent[missing_percent > 0.5].index.tolist()
+    if cols_to_drop:
+        print(f"Dropping {len(cols_to_drop)} columns with >50% missing: {cols_to_drop}")
+        df = df.drop(columns=cols_to_drop)
+
+    # -------------------------------
+    # 2. Drop rows with missing Title or Description
+    # -------------------------------
+    required = ['Title', 'Description']
+    missing_required = df[required].isnull().any(axis=1)
+    df = df[~missing_required]
+    dropped_rows = missing_required.sum()
     print(f"Dropped {dropped_rows} rows due to missing Title or Description")
 
-    # -------------------------------
-    # 2. Analyze missing values in other columns
-    # -------------------------------
-    missing_stats = df_clean.isnull().sum()
-    total_rows = len(df_clean)
-    print("\nMissing values after dropping empty Title/Description:")
-    print(missing_stats[missing_stats > 0])
+    # 3. Normalize and Lemmatize Text Fields
+    print("Normalizing and lemmatizing text fields...")
+    text_columns = ['Title', 'Description', 'Genre', 'Director']
+    for col in text_columns:
+        if col in df.columns:
+            print(f"  → Lemmatizing '{col}'...")
+            df[f"{col}_clean"] = df[col].apply(lambda x: clean_text_lemmatize(str(x)) if pd.notna(x) else "")
+
+    #Replace original columns with cleaned versions
+    for col in text_columns:
+        if f"{col}_clean" in df.columns:
+            df[col] = df[f"{col}_clean"]
+            df = df.drop(columns=[f"{col}_clean"])
 
     # -------------------------------
-    # 3. Fill columns with <20% missing
+    # 4. Parse Duration: "142 min" → 142
     # -------------------------------
-    threshold = 0.2 * total_rows  # 20% of total rows
+    def extract_duration(duration):
+        if pd.isna(duration):
+            return np.nan
+        match = re.search(r'(\d+)', str(duration))
+        return int(match.group(1)) if match else np.nan
 
-    for col in missing_stats.index:
-        if missing_stats[col] == 0:
+    if 'Duration' in df.columns:
+        df['Duration'] = df['Duration'].apply(extract_duration)
+
+
+    # -------------------------------
+    # 5. Validate Rating (0–10)
+    # -------------------------------
+    if 'Rate' in df.columns:
+        df['Rate'] = pd.to_numeric(df['Rate'], errors='coerce')
+        df['Rate'] = df['Rate'].clip(0, 10)
+
+    # -------------------------------
+    # 6. Fill Remaining Missing Values (<50%)
+    # -------------------------------
+    threshold = 0.5 * len(df)  # 50% threshold
+    for col in df.columns:
+        if df[col].isnull().sum() == 0:
             continue
-
-        if missing_stats[col] < threshold:
-            print(f"Filling '{col}' ({missing_stats[col]} missing, {missing_stats[col]/total_rows:.1%})")
-
-            if col in ['Genre', 'Director', 'Duration']:
-                # Fill categorical with 'Unknown'
-                df_clean[col] = df_clean[col].fillna('Unknown')
-            elif col in ['Rate']:
-                # Fill numeric with median
-                median_val = df_clean[col].median()
-                df_clean[col] = df_clean[col].fillna(median_val)
-                print(f"  → Filled with median: {median_val}")
+        if df[col].isnull().sum() < threshold:
+            print(f"Filling '{col}' ({df[col].isnull().sum()} missing)")
+            if df[col].dtype in ['float64', 'int64']:
+                df[col] = df[col].fillna(df[col].median())
             elif col == 'Cast':
-                # Fill with 'Director: Unknown | Stars: Unknown'
-                df_clean[col] = df_clean[col].fillna('Director: Unknown | Stars: Unknown')
+                df[col] = df[col].fillna('Director: Unknown | Stars: Unknown')
             elif col == 'Info':
-                # Fill with 'Votes: 0 | Gross: $0M'
-                df_clean[col] = df_clean[col].fillna('Votes: 0 | Gross: $0M')
+                df[col] = df[col].fillna('Votes: 0 | Gross: $0M')
             else:
-                # Generic fill
-                df_clean[col] = df_clean[col].fillna('Unknown')
+                df[col] = df[col].fillna('Unknown')
         else:
-            print(f"Column '{col}' has {missing_stats[col]/total_rows:.1%} missing (>20%) — keeping as-is (no fill)")
+            print(f"Column '{col}' has >=50% missing — already dropped or kept as-is")
 
     # -------------------------------
-    # 4. Final info and save
+    # 7. Final Info & Save
     # -------------------------------
-    print(f"\nFinal cleaned data: {len(df_clean)} rows ({((original_rows - len(df_clean))/original_rows)*100:.1f}% dropped)")
-    print(f"Saving cleaned data to {output_path}")
-    df_clean.to_csv(output_path, index=False)
+    final_rows, final_cols = df.shape
+    print(f"\nFinal cleaned data: {final_rows} rows ({((original_rows - final_rows)/original_rows)*100:.1f}% dropped)")
+    print(f"Final columns: {final_cols} ({original_cols - final_cols} dropped)")
+    print(f"Saving to {output_path}")
+    df.to_csv(output_path, index=False)
 
-    return df_clean
+    return df
 
-# Run the cleaning
 if __name__ == "__main__":
     cleaned_df = clean_movie_data()
-    print("\n✅ Data cleaning complete!")
+    print("\n✅ Data cleaning with lemmatization complete!")

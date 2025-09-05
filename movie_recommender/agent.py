@@ -3,6 +3,11 @@ from google.adk.agents import Agent
 from movie_recommender.rag_tool import recommend_movies
 
 
+print("✅ agent.py is being imported")
+print("🔍 Current working directory:", __import__('os').getcwd())
+print("📦 Python path:", __import__('sys').path)
+
+# Tool our agent is using
 def movie_recommender_tool(query: str) -> str:
     """
     Recommends movies based on a natural language description.
@@ -14,9 +19,9 @@ def movie_recommender_tool(query: str) -> str:
     return recommend_movies(query)
 
 
-# ✅ MUST BE NAMED root_agent
+# Our root agent
 root_agent = Agent(
-    name="CineSage",
+    name="LoveSage",
     model="gemini-1.5-flash",
     description="A smart movie recommendation expert using RAG.",
     instruction=(

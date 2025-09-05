@@ -1,5 +1,3 @@
-
-# For our chromadb
 import pandas as pd
 import re
 import spacy
@@ -10,9 +8,6 @@ from pathlib import Path
 # -------------------------------
 # 1. Load and Parse Data
 # -------------------------------
-print("Loading and preprocessing data...")
-
-# In vectorstore.py
 df = pd.read_csv("cleaned_imdb_top_1000.csv") 
 
 # Helper: Parse Cast field
@@ -47,8 +42,6 @@ df["Gross"] = df["parsed_info"].apply(lambda x: x["gross"])
 # -------------------------------
 # 2. Clean Text with spaCy
 # -------------------------------
-print("Cleaning text for embeddings...")
-
 # Load spaCy model
 try:
     nlp = spacy.load("en_core_web_sm")
@@ -73,8 +66,6 @@ def clean_text(text: str) -> str:
 # -------------------------------
 # 3. Create MetaText for Embedding
 # -------------------------------
-print("Creating MetaText for semantic search...")
-
 df["MetaText"] = df.apply(lambda row: (
     f"Title: {row['Title']}\n"
     f"Director: {row['Director']}\n"
@@ -91,14 +82,12 @@ df["cleaned_metatext"] = df["MetaText"].apply(clean_text)
 # -------------------------------
 # 4. Generate Embeddings
 # -------------------------------
-print("Generating embeddings...")
 model = SentenceTransformer("all-MiniLM-L6-v2")
 embeddings = model.encode(df["cleaned_metatext"].tolist(), show_progress_bar=True)
 
 # -------------------------------
 # 5. Store in ChromaDB (Persistent)
 # -------------------------------
-print("Storing in ChromaDB...")
 
 # Use path relative to this file
 db_path = Path(__file__).parent / "chroma_db"
@@ -110,11 +99,9 @@ collection = client.get_or_create_collection(name="movies")
 # Add data
 collection.add(
     embeddings=embeddings.tolist(),
-    documents=df["MetaText"].tolist(),  # Original readable text
+    documents=df["MetaText"].tolist(), 
     metadatas=df[[
         "Title", "Genre", "Director", "Rate", "Votes", "Gross", "Duration"
     ]].to_dict(orient="records"),
     ids=[f"movie_{i}" for i in range(len(df))]
 )
-
-print("✅ ChromaDB: Movie data stored with metadata.")
