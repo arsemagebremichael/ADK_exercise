@@ -16,7 +16,7 @@ Built with **Google ADK**, **ChromaDB**, and **Gemini**, it combines semantic se
 - **Semantic search**  
   Finds movies by meaning, not just genre
 - **AI-generated explanations**  
-  Powered by Gemini — no hallucinations
+  Powered by Gemini
 - **Interactive UI**  
   Run in terminal or browser with ADK Dev UI
 
