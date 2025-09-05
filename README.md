@@ -3,7 +3,7 @@
 > "Recommend me emotionally animated movies about food."  
 > → *"I highly recommend Ratatouille, a heartwarming story about a rat who dreams of becoming a chef..."*
 
-LoveSage is a **RAG-powered movie recommendation system** that understands natural language and delivers **smart, explained suggestions** — not just keyword matches.
+LoveSage is a **RAG-powered movie recommendation system** that understands natural language and delivers **smart, explained suggestions**.
 
 Built with **Google ADK**, **ChromaDB**, and **Gemini**, it combines semantic search with AI reasoning to act like a real film expert.
 
