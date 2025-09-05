@@ -35,7 +35,7 @@ Built with **Google ADK**, **ChromaDB**, and **Gemini**, it combines semantic se
 
 ---
 
-## 🧪 Try It
+##Try It
 
 ```bash
 # Run in terminal
