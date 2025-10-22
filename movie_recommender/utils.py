@@ -31,7 +31,7 @@ def parse_info_field(info_str: str):
     votes_match = re.search(r"Votes:\s*([\d,]+)", info_str)
     gross_match = re.search(r"Gross:\s*\$(\d+\.?\d*)M", info_str)
     votes = int(votes_match.group(1).replace(",", "")) if votes_match else 0
-    gross = float(gross_match.group(1)) if gross_match else 0.0  # in millions
+    gross = float(gross_match.group(1)) if gross_match else 0.0 
     return {"votes": votes, "gross": gross}
 
 def clean_text(text: str) -> str:

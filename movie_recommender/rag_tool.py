@@ -6,17 +6,14 @@ import google.generativeai as genai
 import os
 from movie_recommender.utils import clean_text 
 
-# Initialize models
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 gemini_model = genai.GenerativeModel("gemini-1.5-flash")
 
-# Connect to ChromaDB
 db_path = Path(__file__).parent / "chroma_db"
 client = chromadb.PersistentClient(path=str(db_path))
 collection = client.get_collection(name="movies")
 
-# Prompt template
 PROMPT_TEMPLATE = """
 You are a passionate and insightful movie recommendation expert.
 
@@ -37,13 +34,11 @@ def recommend_movies(query: str) -> str:
     cleaned_query = clean_text(query)
     query_embedding = embedding_model.encode([cleaned_query])[0].tolist()
 
-    # Query ChromaDB
     results = collection.query(
         query_embeddings=[query_embedding],
         n_results=3
     )
 
-    # The format context
     context_parts = []
     for meta, doc in zip(results["metadatas"][0], results["documents"][0]):
         stars = ", ".join(meta.get("Stars", [])) if isinstance(meta.get("Stars"), list) else meta.get("Stars", "")
@@ -58,7 +53,6 @@ def recommend_movies(query: str) -> str:
 
     context = "\n\n".join(context_parts)
 
-    # Generate with Gemini
     final_prompt = PROMPT_TEMPLATE.format(query=query, context=context)
     try:
         response = gemini_model.generate_content(final_prompt)
